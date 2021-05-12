@@ -22,10 +22,10 @@
     },
     computed:{
       isActive() {
-        console.log(this.$route.path)
-        console.log(this.path)
-        console.log(this.$route.path.indexOf(this.path) !== -1)
-        console.log('--------------------------')
+        // console.log(this.$route.path)
+        // console.log(this.path)
+        // console.log(this.$route.path.indexOf(this.path) !== -1)
+        // console.log('--------------------------')
         return this.$route.path.indexOf(this.path) !== -1
       },
       activeStyle(){
@@ -34,7 +34,7 @@
     },
     methods:{
       itemClick(){
-        console.log('click');
+        // console.log('click');
         this.isActive = true
         if(this.$route.path !== this.path)
           this.$router.replace(this.path)
