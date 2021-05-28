@@ -1,7 +1,10 @@
 <template>
   <div id="home">
     <nav-bar class="home-nav"><div slot="center">购物街</div></nav-bar>
-    <scroll class="content" ref="scroll">
+    <scroll class="content" ref="scroll"
+            :probe-type="3"
+            :pull-up-load="true"
+            @scroll="contentScroll" @pullingUp="loadMore"><!--  不加冒号 传成字符串    -->
         <home-swiper :banners="banners"/>
         <home-reccomend :recommends="recommends"/>
         <home-feature/>
@@ -9,7 +12,7 @@
                      :titles="titles" @tabClick="tabClick"/>
         <goods-list :goods="showGoods"/>
       </scroll>
-    <back-top @click.native="backClick"></back-top>
+    <back-top @click.native="backClick" v-show="backShow"></back-top>
   </div>
 </template>
 
@@ -57,7 +60,8 @@ export default {
       },
       titles:['流行','新款','精选'],
       types:['pop','new','sell'],
-      currentIndex:0
+      currentIndex:0,
+      backShow:false
     }
   },
   created() {
@@ -73,9 +77,19 @@ export default {
     tabClick(index){
       console.log(index)
       this.currentIndex = index
+      this.$refs.scroll.scroll.refresh()
     },
     backClick(){
       this.$refs.scroll.ScrollTo(0, 0, 500)
+    },
+    contentScroll(position){
+      // console.log(position);
+      this.backShow = position.y < -1000
+    },
+    loadMore(){
+      console.log('上拉加载更多');
+      let goods = this.getHomeGoods(this.types[this.currentIndex])
+      console.log(goods);
     },
     /*
     * 网络请求相关方法
@@ -89,8 +103,13 @@ export default {
     },
     getHomeGoods(type) {
       const page = this.goods[type].page + 1
+      this.goods[type].page++
+      console.log(page)
       getHomeGoods(type, page).then(res => {
         this.goods[type].list.push(...res.data.data.list)
+        // console.log(this.goods)
+        this.$refs.scroll.finishPullUp()
+        this.$refs.scroll.scroll.refresh()
         console.log(this.goods)
       })
     }
