@@ -32,13 +32,19 @@ export default {
       click: true,
       probeType: this.probeType
     })
-    this.scroll.on('scroll', (position) => {
-      this.$emit('scroll', position)
-    })
-    this.scroll.on('pullingUp',()=>{
-      // console.log('上拉加载更多');
-      this.$emit('pullingUp')
-    })
+
+    if (this.probeType === 2 || this.probeType === 3) {
+      this.scroll.on('scroll', (position) => {
+        this.$emit('scroll', position)
+      })
+    }
+
+    if (this.pullUpLoad) {
+      this.scroll.on('pullingUp', () => {
+        // console.log('上拉加载更多');
+        this.$emit('pullingUp')
+      })
+    }
   },
   methods:{
     ScrollTo(x, y, time = 300){
@@ -46,6 +52,10 @@ export default {
     },
     finishPullUp(){
       this.scroll.finishPullUp()
+    },
+    refresh(){
+      this.scroll.refresh()
+      console.log('refresh');
     }
   }
 }

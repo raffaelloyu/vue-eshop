@@ -1,15 +1,15 @@
 <template>
   <div id="home">
     <nav-bar class="home-nav"><div slot="center">购物街</div></nav-bar>
+    <tab-control v-show="isTabFixed" :titles="titles" @tabClick="tabClick" ref="tabControl1" class="tab-control"/>
     <scroll class="content" ref="scroll"
             :probe-type="3"
             :pull-up-load="true"
             @scroll="contentScroll" @pullingUp="loadMore"><!--  不加冒号 传成字符串    -->
-        <home-swiper :banners="banners"/>
+        <home-swiper :banners="banners" @swiperImageLoaded="swiperImageLoaded"/>
         <home-reccomend :recommends="recommends"/>
         <home-feature/>
-        <tab-control class="tab-control"
-                     :titles="titles" @tabClick="tabClick"/>
+        <tab-control :titles="titles" @tabClick="tabClick" ref="tabControl2"/>
         <goods-list :goods="showGoods"/>
       </scroll>
     <back-top @click.native="backClick" v-show="backShow"></back-top>
@@ -31,10 +31,13 @@ import {
   getHomeGoods
 } from "@/network/home";
 
+import {debounce} from "@/common/utils";
+
+
 
 export default {
   name: "Home",
-  components:{
+  components: {
     HomeReccomend,
     NavBar,
     HomeSwiper,
@@ -44,24 +47,26 @@ export default {
     Scroll,
     BackTop
   },
-  computed:{
-    showGoods(){
+  computed: {
+    showGoods() {
       return this.goods[this.types[this.currentIndex]].list
     }
   },
-  data(){
-    return{
-      banners:[],
-      recommends:[],
-      goods:{
-        'pop':{page: 0, list:[]},
-        'new':{page: 0, list:[]},
-        'sell':{page: 0, list:[]},
+  data() {
+    return {
+      banners: [],
+      recommends: [],
+      goods: {
+        'pop': {page: 0, list: []},
+        'new': {page: 0, list: []},
+        'sell': {page: 0, list: []},
       },
-      titles:['流行','新款','精选'],
-      types:['pop','new','sell'],
-      currentIndex:0,
-      backShow:false
+      titles: ['流行', '新款', '精选'],
+      types: ['pop', 'new', 'sell'],
+      currentIndex: 0,
+      backShow: false,
+      tabOffsetTop: 0,
+      isTabFixed: false
     }
   },
   created() {
@@ -70,26 +75,42 @@ export default {
     this.getHomeGoods('new')
     this.getHomeGoods('sell')
   },
+  mounted() {
+    const refresh = debounce(this.$refs.scroll.refresh, 200)
+    this.$bus.$on('itemImgLoad', () => {
+      console.log('home page loaded');
+      refresh()
+    })
+  },
   methods: {
     /*
     *事件监听
     * */
-    tabClick(index){
+    tabClick(index) {
       console.log(index)
       this.currentIndex = index
-      this.$refs.scroll.scroll.refresh()
+      this.$refs.tabControl1.currentIndex = index
+      this.$refs.tabControl2.currentIndex = index
+      this.$refs.scroll.refresh()
     },
-    backClick(){
+    backClick() {
+
       this.$refs.scroll.ScrollTo(0, 0, 500)
     },
-    contentScroll(position){
+    contentScroll(position) {
       // console.log(position);
       this.backShow = position.y < -1000
+
+      this.isTabFixed = (-position.y) > this.tabOffsetTop
     },
-    loadMore(){
+    loadMore() {
       console.log('上拉加载更多');
       let goods = this.getHomeGoods(this.types[this.currentIndex])
       console.log(goods);
+    },
+    swiperImageLoaded(){
+      this.tabOffsetTop = this.$refs.tabControl2.$el.offsetTop
+      console.log(this.tabOffsetTop);
     },
     /*
     * 网络请求相关方法
@@ -114,31 +135,33 @@ export default {
       })
     }
   }
-}
+};
+
 </script>
 
 <style scoped>
   #home{
-    padding-top: 44px;
+    /*padding-top: 44px;*/
     height: 100vh;
     position: relative;
+  }
+
+  .fixed {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 44px;
   }
 
  .home-nav{
    background-color: var(--color-tint);
    color: white;
 
-   position: fixed;
-   left: 0;
-   right: 0;
-   top: 0;
-   z-index: 9;
- }
-
- .tab-control{
-   position: sticky;
-   top: 44px;
-   z-index: 999;
+   /*position: fixed;*/
+   /*left: 0;*/
+   /*right: 0;*/
+   /*top: 0;*/
+   /*z-index: 9;*/
  }
 
  .content{
@@ -149,5 +172,10 @@ export default {
    left: 0;
    right: 0;
    /*margin-top: 44px;*/
+ }
+
+ .tab-control{
+   position: relative;
+   z-index: 9;
  }
 </style>
