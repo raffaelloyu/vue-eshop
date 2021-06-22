@@ -33,8 +33,6 @@ import {
 
 import {debounce} from "@/common/utils";
 
-
-
 export default {
   name: "Home",
   components: {

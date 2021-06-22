@@ -1,18 +1,20 @@
 <template>
   <div id="detail">
-    <detail-nav-bar class="detail-nav"></detail-nav-bar>
-    <scroll ref="scroll" class="content" :probe-type="3">
-      <div>
-        <detail-swiper :top-images="topImages" @detailSwipperLoaded="swiperLoaded"></detail-swiper>
+    <detail-nav-bar ref="navbar" class="detail-nav" @titleClick="titleClick"></detail-nav-bar>
+    <scroll ref="scroll" class="content" :probe-type="3" @scroll="scrollContent">
+      <div ref="wrapper">
+        <detail-swiper ref="base"  class="swiper" :top-images="topImages" @detailSwipperLoaded="swiperLoaded"></detail-swiper>
         <detail-base-info :goods="goods"></detail-base-info>
         <detail-shop-info :shop="shop"></detail-shop-info>
         <detail-goods-info :detail-info="detailInfo" @imageLoad="imageLoad"></detail-goods-info>
-        <detail-param-info :good-param="goodParam" @paramLoaded="paramLoad"></detail-param-info>
-        <detail-comment-info :comment-info="commentInfo"></detail-comment-info>
+        <detail-param-info ref="param" class="param" :good-param="goodParam" @paramLoaded="paramLoad"></detail-param-info>
+        <detail-comment-info ref="comment" class="comment" :comment-info="commentInfo"></detail-comment-info>
 <!--        <goods-list :goods="recommends"></goods-list>-->
-        <detail-recommend-info ref="recommend" :recommend-list="recommends"></detail-recommend-info>
+        <detail-recommend-info ref="recommend" class="recommend" :recommend-list="recommends"></detail-recommend-info>
       </div>
     </scroll>
+    <detail-bottom-bar @addCart="addToCart"></detail-bottom-bar>
+    <back-top class="detail-back-top" @click.native="backClick" v-show="backShow"></back-top>
   </div>
 </template>
 
@@ -24,7 +26,9 @@ import DetailShopInfo from "@/views/detail/childComps/DetailShopInfo";
 import DetailGoodsInfo from "@/views/detail/childComps/DetailGoodsInfo";
 import DetailParamInfo from "@/views/detail/childComps/DetailParamInfo";
 import DetailCommentInfo from "@/views/detail/childComps/DetailCommentInfo";
+import DetailBottomBar from "@/views/detail/childComps/DetailBottomBar";
 import GoodsList from "@/components/content/goods/GoodsList";
+import BackTop from "@/components/content/backToTop/BackTop";
 
 import Scroll from "@/components/content/scroll/Scroll";
 
@@ -44,7 +48,9 @@ export default {
     Scroll,
     DetailGoodsInfo,
     DetailParamInfo,
-    DetailCommentInfo
+    DetailCommentInfo,
+    DetailBottomBar,
+    BackTop
   },
   data() {
     return {
@@ -59,11 +65,17 @@ export default {
       detailInfo:{},
       goodParam:{},
       commentInfo:{},
-      recommends:[]
+      recommends:[],
+      backShow:false
     }
   },
   mounted() {
-    const refresh = debounce(this.$refs.scroll.refresh, 200)
+    const refresh = debounce(()=>{
+      if(this.$refs.scroll){
+        this.$refs.scroll.refresh()
+      }
+      this.getOffsetTops()
+    }, 200)
     this.$bus.$on('detailItemImgLoad', () => {
       refresh()
     })
@@ -80,7 +92,69 @@ export default {
     },
     imageLoad(){
       this.$refs.scroll.refresh()
+    },
+    titleClick(index){
+      switch (index) {
+        case 0:
+          this.$refs.scroll.scroll.scrollToElement('.swiper', 200)
+          break;
+        case 1:
+          this.$refs.scroll.scroll.scrollToElement('.param', 200)
+          break;
+        case 2:
+          this.$refs.scroll.scroll.scrollToElement('.comment', 200)
+          break;
+        case 3:
+          this.$refs.scroll.scroll.scrollToElement('.recommend', 200)
+          break;
+        default:
+          break;
+      }
+    },
+    scrollContent(position){
+      const currentY = -position.y
+      if(currentY < this.themeTops[1]){
+        this.$refs.navbar.currentIndex = 0
+      } else if(currentY < this.themeTops[2] && currentY > this.themeTops[1]){
+        this.$refs.navbar.currentIndex = 1
+      } else if(currentY < this.themeTops[3] && currentY > this.themeTops[2]){
+        this.$refs.navbar.currentIndex = 2
+      } else{
+        this.$refs.navbar.currentIndex = 3
+      }
+
+      this.backShow = position.y < -1000
+    },
+    getOffsetTops() {
+      this.themeTops = []
+      this.themeTops.push(this.$refs.base.$el.offsetTop)
+      this.themeTops.push(this.$refs.param.$el.offsetTop)
+      this.themeTops.push(this.$refs.comment.$el.offsetTop)
+      this.themeTops.push(this.$refs.recommend.$el.offsetTop)
+      this.themeTops.push(Number.MAX_VALUE)
+      console.log(this.themeTops);
+    },
+    backClick() {
+      this.$refs.scroll.ScrollTo(0, 0, 500)
+    },
+    addToCart(){
+      //1.获取购物车需要展示的信息
+      const product = {}
+      product.img = this.topImages[0]
+      product.title = this.goods.title
+      product.desc = this.goods.desc
+      product.price = this.goods.realPrice
+      product.iid = this.iid
+
+      // this.$store.commit('addToCart', product)  //调用mutations
+      this.$store.dispatch('addCart', product)  //调用actions
+      console.log(this.$store.state.cartList)
+      //2.添加购物车
     }
+  },
+  updated()  {
+    // debugger
+    this.getOffsetTops()
   },
   created() {
     this.iid = this.$route.params.iid
@@ -125,6 +199,10 @@ export default {
   }
 
   .content {
-    height: calc(100% - 44px);
+    height: calc(100% - 44px - 49px);
+  }
+
+  .detail-back-top{
+    margin-right: 10px;
   }
 </style>
